@@ -1,0 +1,6 @@
+framework module Pods_Exchange_app_2 {
+  umbrella header "Pods-Exchange app-2-umbrella.h"
+
+  export *
+  module * { export * }
+}
