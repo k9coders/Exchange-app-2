@@ -12,13 +12,13 @@ import Alamofire
 class ViewController: UIViewController, UIScrollViewDelegate, UITextFieldDelegate {
     
     //MARK: - setup let/var
-    //array for numbers input field
+    //array for numbers input field (этот массив хранит введенные символы)
     var arrayTextField: [String] = []
     
-    //current rate to calculate
-    var currentRate = 0.0
+    //current rate to calculate (текущий rate. при запуске одинаковые валюты, поэтому изначально 1.0)
+    var currentRate = 1.0
     
-    //set number of active View
+    //set number of active View (переменная, которая хранит номер активного элемента scrollView. при запуске 1,1)
     var topViewScrollNumber = 1
     var bottomViewScrollNumber = 1
     
@@ -32,24 +32,25 @@ class ViewController: UIViewController, UIScrollViewDelegate, UITextFieldDelegat
     private let bottomScrollView = CustomScrollView()
     
     
-    //params for Amamofire
+    //params for Alamofire
     private var url = "http://api.exchangeratesapi.io/latest?access_key=d7b9466fd5bb4b76efb769f0ec8f61d4"
 
     // MARK: - viewDidLoad
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        //(отрисовка UI, delegates, constraints)
         setupView()
         
         //is first start app? if true - set start balance
         userDefaults()
         
-        title = "$1 = $1"
+        //setup Exchange button
         let exchangeButton = UIBarButtonItem(title: "Exchange", style: .plain, target: self, action: #selector(exchangeButtonPressed))
         navigationItem.rightBarButtonItem = exchangeButton
         
+        // (получить курсы валют при запуске приложения)
         getExchangeRate(url: url)
-        
     }
     // MARK: - function setupView
     private func setupView() {
@@ -57,7 +58,7 @@ class ViewController: UIViewController, UIScrollViewDelegate, UITextFieldDelegat
         view.addSubview(topScrollView)
         view.addSubview(bottomScrollView)
         
-        //set delegates
+        //set delegates for input recognize
         topScrollView.delegate = self
         bottomScrollView.delegate = self
         
@@ -109,21 +110,25 @@ class ViewController: UIViewController, UIScrollViewDelegate, UITextFieldDelegat
     //Change currency rates in title and label
     func changeCurrencyRates() {
         
-        var fromRate = 0.0
-        var toRate = 0.0
+        var fromRate = 0.0 //rate валюты, которая находится на верхнем UIScrollView
+        var toRate = 0.0 //rate валюты, которая находится на нижнем UIScrollView
         
-        var topSymbol = ""
-        var bottomSymbol = ""
+        var topSymbol = "" //символ валюты, которая находится на верхнем UIScrollView
+        var bottomSymbol = "" //символ валюты, которая находится на нижнем UIScrollView
+
+        //FIXME: - возможно объект topBox стоит сделать глобальным, чтобы из другой функции (конвертация) всегда иметь доступ к текущему View
         
-        var topBox: CustomCurrencyView?
+        var topBox: CustomCurrencyView? // объект верхнего UIScrollView
         var bottomBox: CustomCurrencyView?
         
+        
+        // 2 switch-a, которые перебирают номер текущего отображаемого scrollView сверху и снизу
         switch topViewScrollNumber {
         case 1:
             //USD
-            fromRate = self.dataSource?.rates.USD ?? 0
-            topBox = self.topScrollView.usdBoxView
-            topSymbol = "$"
+            fromRate = self.dataSource?.rates.USD ?? 0 // достает из текущей версии Data рейт валюты
+            topBox = self.topScrollView.usdBoxView // присваивает объект текущего view для того, чтобы присвоить его label-ам значения rate
+            topSymbol = "$" // символ валюты, который будет использован для label в title и topBox и bottomBox
         case 2:
             //EUR
             fromRate = self.dataSource?.rates.EUR ?? 0
@@ -163,16 +168,16 @@ class ViewController: UIViewController, UIScrollViewDelegate, UITextFieldDelegat
             }
         //Calculate actual rate
 
-        let topViewCourse = String(format: "%.2f",toRate/fromRate)
-        let bottomViewCourse = String(format: "%.2f",fromRate/toRate)
+        let topViewCourse = String(format: "%.2f",toRate/fromRate) //rate для валюты, которая выбрана в верхнем scrollView, считается относительно выбранной валюты в нижем scrollView
+        let bottomViewCourse = String(format: "%.2f",fromRate/toRate) //rate для валюты, которая выбрана в нижнем scrollView
         currentRate = toRate/fromRate
 
         //Update UI
         DispatchQueue.main.async {
-            self.title = "1\(topSymbol) = \(bottomSymbol) \(topViewCourse)"
-            topBox?.exchangeRate.text = self.title
+            //update rate to title and labels
+            topBox?.exchangeRate.text = "1\(topSymbol) = \(bottomSymbol) \(topViewCourse)"
             bottomBox?.exchangeRate.text = "1\(bottomSymbol) = \(topSymbol) \(bottomViewCourse)"
-
+            self.title = topBox?.exchangeRate.text
         }
     }
 // MARK: - input recognizer
@@ -186,14 +191,28 @@ class ViewController: UIViewController, UIScrollViewDelegate, UITextFieldDelegat
     }
     // convertation
     private func convertValue(array: [String]){
-        var numberArray = ""
+
+        //FIXME: это корректно? Привожу тип [String] в String, иначе он не переводится в Double для математической операции
+        let numberArray = array.joined(separator: "")
         var result = 0.0
-        for i in array{
-            numberArray += i
-            result = Double(numberArray)! * currentRate
+//        for i in array{
+//            numberArray += i
+////            result = Double(numberArray)! * currentRate
+////            bottomScrollView.usdBoxView.textFieldValue.text = String(format: "%.2f", result)
+////            print(result)
+//        }
+        
+        // unwrap numberArray
+        if let numberArray = Double(numberArray) {
+            result = Double(numberArray) * currentRate
             bottomScrollView.usdBoxView.textFieldValue.text = String(format: "%.2f", result)
             print(result)
         }
+        else {
+            bottomScrollView.usdBoxView.textFieldValue.text = "ОШИБКА введенные данные содержат не корректное значение"
+            print("ОШИБКА введенные данные содержат не корректное значение")
+        }
+
     }
     
     func userDefaults() {
@@ -242,6 +261,7 @@ class ViewController: UIViewController, UIScrollViewDelegate, UITextFieldDelegat
                 }
             case .failure(let error):
                 print("ОШИБКА: \(error)")
+                
             }
         }
     }
@@ -249,7 +269,10 @@ class ViewController: UIViewController, UIScrollViewDelegate, UITextFieldDelegat
     // update UILabels to actual rates
     private func updateUI(dataSource: Data) {
 //        self.title = "\(dataSource.rates.USD)"
+        //FIXME: - берется EUR rate который присваивается "текущему rate", которым при запуске приложения является USD. Фактически т.к. при запуске выбраны валюты USD:USD - их rate 1
         currentRate = dataSource.rates.EUR
         print("title: \(self.title)")
+        // вызываем метод, который обновляет
+        changeCurrencyRates()
     }
 }
