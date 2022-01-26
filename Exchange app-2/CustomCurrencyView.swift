@@ -43,13 +43,13 @@ class CustomCurrencyView: UIView {
         currencyName.translatesAutoresizingMaskIntoConstraints = false
         
         //currentBalance setup
-        currentBalance.text = "You have: 100$"
+//        currentBalance.text = "You have: 100$"
         currentBalance.font = UIFont(name: "Futura-CondensedMedium", size: 20)
         currentBalance.textColor = .black
         currentBalance.translatesAutoresizingMaskIntoConstraints = false
         
         //excchangeRate setup
-        exchangeRate.text = "$1 = $1"
+//        exchangeRate.text = "$1 = $1"
         exchangeRate.font = UIFont(name: "Futura-CondensedMedium", size: 20)
         exchangeRate.textColor = .black
         exchangeRate.translatesAutoresizingMaskIntoConstraints = false
