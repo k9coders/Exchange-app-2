@@ -16,7 +16,7 @@ class ViewController: UIViewController, UIScrollViewDelegate, UITextFieldDelegat
     
     //MARK: - setup let/var
     //array for numbers input field (этот массив хранит введенные символы)
-    var arrayTextField: [String] = []
+    var inputTextField: String?
     
     //current rate to calculate (текущий rate. при запуске одинаковые валюты, поэтому изначально 1.0)
     var currentRate: Double?
@@ -25,7 +25,6 @@ class ViewController: UIViewController, UIScrollViewDelegate, UITextFieldDelegat
     var topViewScrollNumber = 1
     var bottomViewScrollNumber = 1
     
-    //FIXME: - после получения с сервера rates, срабатывает ф-я changeCurrencyRates(), которая определяет текущий отображаемый элемент ScrollView (1,1) и присваевает соответствующие объекты для верхнего и нижнего box-a (USD), это ок?
     //set current box in view, as object (хранит объект текущего отображаемого View)
     var topBoxView: CustomCurrencyView?
     var bottomBoxView: CustomCurrencyView?
@@ -42,6 +41,8 @@ class ViewController: UIViewController, UIScrollViewDelegate, UITextFieldDelegat
     
     //params for Alamofire
     private var url = "http://api.exchangeratesapi.io/latest?access_key=d7b9466fd5bb4b76efb769f0ec8f61d4"
+    var timer: DispatchSourceTimer?
+
 
     // MARK: - viewDidLoad
     
@@ -58,7 +59,8 @@ class ViewController: UIViewController, UIScrollViewDelegate, UITextFieldDelegat
         navigationItem.rightBarButtonItem = exchangeButton
         
         // (получить курсы валют при запуске приложения)
-        getExchangeRate(url: url)
+//        getExchangeRate(url: url) т.к. таймер ниже запускает его
+        getRateTimer()
     }
     // MARK: - function setupView
     private func setupView() {
@@ -111,14 +113,14 @@ class ViewController: UIViewController, UIScrollViewDelegate, UITextFieldDelegat
                 // clear textFields, and inputed symbols after any scroll (очищает поле ввода\вывода + очищает введенные символы из хранилища)
                 topBoxView?.textFieldValue.text = ""
                 bottomBoxView?.textFieldValue.text = ""
-                arrayTextField = [""]
+                inputTextField = ""
                 topViewScrollNumber = page
             }
         case 2:
             if page != bottomViewScrollNumber {
                 topBoxView?.textFieldValue.text = ""
                 bottomBoxView?.textFieldValue.text = ""
-                arrayTextField = [""]
+                inputTextField = ""
                 bottomViewScrollNumber = page
             }
 
@@ -214,10 +216,12 @@ class ViewController: UIViewController, UIScrollViewDelegate, UITextFieldDelegat
 // MARK: - input recognizer
     func textField(_ textField: UITextField, shouldChangeCharactersIn range: NSRange, replacementString string: String) -> Bool {
         print("добавлен символ:\(string)")
-        print(textField.text)
-        
-        arrayTextField.append(string)
-        convertValue(array: arrayTextField)
+        if let text = textField.text {
+            self.inputTextField = text + string
+            print(self.inputTextField)
+        }
+
+        convertValue()
         
         return true
     }
@@ -226,21 +230,20 @@ class ViewController: UIViewController, UIScrollViewDelegate, UITextFieldDelegat
     //FIXME: - нужна функция(?), которая отслеживает удаление символа из поля ввода и изменяет массив
     
     // MARK: - currency convertation
-    private func convertValue(array: [String]){
+    private func convertValue() {
 
-        //FIXME: это корректно? Привожу тип [String] в String, иначе он не переводится в Double для математической операции
-        let numberArray = array.joined(separator: "")
+//        let numberArray: Double
         var result = 0.0
 
-        
-        // unwrap numberArray
-        if let numberArray = Double(numberArray), let currentRate = currentRate {
+        // unwrap numberArray and currentRate
+        if let numberArray = Double(self.inputTextField ?? ""), let currentRate = currentRate {
             result = Double(numberArray) * currentRate
             self.bottomBoxView?.textFieldValue.text = String(format: "%.2f", result)
             print(result)
         }
+        
         else {
-            bottomScrollView.usdBoxView.textFieldValue.text = "ОШИБКА введенные данные содержат не корректное значение"
+            bottomScrollView.usdBoxView.textFieldValue.text = "ОШИБКА"
             print("ОШИБКА введенные данные содержат не корректное значение")
         }
 
@@ -280,30 +283,32 @@ class ViewController: UIViewController, UIScrollViewDelegate, UITextFieldDelegat
         AF.request(url).responseDecodable(of: Data.self) { response in
             switch response.result {
             case .success(let value):
-                print("value: \(value)")
-                print(value.rates)
                 self.dataSource = value
                 //self.structCurrency = value.rates // if we need use rates only
                 DispatchQueue.main.async {
-                    if let dataSource = self.dataSource {
-                        self.updateUI(dataSource: dataSource)
-//                        self.title = String(value.rates.USD)
+                    if self.dataSource != nil {
+//                        self.updateUI(dataSource: dataSource)
+                        self.changeCurrencyRates()
                     }
                 }
             case .failure(let error):
                 print("ОШИБКА: \(error)")
-                
             }
         }
     }
     
-    // update UILabels to actual rates
-    private func updateUI(dataSource: Data) {
-//        self.title = "\(dataSource.rates.USD)"
-        //FIXME: - берется EUR rate который присваивается "текущему rate", которым при запуске приложения является USD. Фактически т.к. при запуске выбраны валюты USD:USD - их rate 1
-//        currentRate = dataSource.rates.EUR
-        print("title: \(self.title)")
-        // вызываем метод, который обновляет
-        changeCurrencyRates()
+    //Обновление rates раз в 30 сек
+    func getRateTimer() {
+        let queue = DispatchQueue(label: "getRate", attributes: .concurrent)
+        timer = DispatchSource.makeTimerSource(queue: queue)
+        timer?.schedule(deadline: .now(),
+                       repeating: .seconds(30),
+                       leeway: .seconds(1))
+        timer?.setEventHandler {
+            self.getExchangeRate(url: self.url)
+            print("rates updated")
+        }
+        timer?.resume()
     }
+    
 }
