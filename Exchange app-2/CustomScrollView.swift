@@ -54,7 +54,4 @@ class CustomScrollView: UIScrollView {
             ]
             NSLayoutConstraint.activate(constraints)
     }
-    
-
-    
 }

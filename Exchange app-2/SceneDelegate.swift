@@ -16,7 +16,9 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         setupWindow(scene: scene)
     }
     
-    // setup navController to root view
+    
+        // setup navController to root view
+    
         private func setupWindow(scene: UIScene) {
             guard let windowScene = scene as? UIWindowScene else { return }
             window = UIWindow(windowScene: windowScene)

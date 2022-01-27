@@ -40,7 +40,7 @@ class ViewController: UIViewController, UIScrollViewDelegate, UITextFieldDelegat
     
     
     //params for Alamofire
-    private var url = "http://api.exchangeratesapi.io/latest?access_key=d7b9466fd5bb4b76efb769f0ec8f61d4"
+    private var url = "http://api.exchangeratesapi.io/latest?access_key=7e9f2e1f655a573e5189f16d2cb00a85"
     var timer: DispatchSourceTimer?
 
 
@@ -68,19 +68,22 @@ class ViewController: UIViewController, UIScrollViewDelegate, UITextFieldDelegat
         view.addSubview(topScrollView)
         view.addSubview(bottomScrollView)
         
+        topScrollView.usdBoxView.delegate = self
+        
+        
         //set delegates for input recognize
         topScrollView.delegate = self
         bottomScrollView.delegate = self
         
-        topScrollView.usdBoxView.textFieldValue.delegate = self
-        topScrollView.eurBoxView.textFieldValue.delegate = self
-        topScrollView.gbpBoxView.textFieldValue.delegate = self
+        topScrollView.usdBoxView.amountTextField.delegate = self
+        topScrollView.eurBoxView.amountTextField.delegate = self
+        topScrollView.gbpBoxView.amountTextField.delegate = self
         //set tag for topScrollView
         topScrollView.tag = 1
         
-        bottomScrollView.usdBoxView.textFieldValue.isUserInteractionEnabled = false
-        bottomScrollView.eurBoxView.textFieldValue.isUserInteractionEnabled = false
-        bottomScrollView.gbpBoxView.textFieldValue.isUserInteractionEnabled = false
+        bottomScrollView.usdBoxView.amountTextField.isUserInteractionEnabled = false
+        bottomScrollView.eurBoxView.amountTextField.isUserInteractionEnabled = false
+        bottomScrollView.gbpBoxView.amountTextField.isUserInteractionEnabled = false
         //set tag for bottomScrollView
         bottomScrollView.tag = 2
         
@@ -111,15 +114,15 @@ class ViewController: UIViewController, UIScrollViewDelegate, UITextFieldDelegat
         case 1:
             if page != topViewScrollNumber {
                 // clear textFields, and inputed symbols after any scroll (очищает поле ввода\вывода + очищает введенные символы из хранилища)
-                topBoxView?.textFieldValue.text = ""
-                bottomBoxView?.textFieldValue.text = ""
+                topBoxView?.amountTextField.text = ""
+                bottomBoxView?.amountTextField.text = ""
                 inputTextField = ""
                 topViewScrollNumber = page
             }
         case 2:
             if page != bottomViewScrollNumber {
-                topBoxView?.textFieldValue.text = ""
-                bottomBoxView?.textFieldValue.text = ""
+                topBoxView?.amountTextField.text = ""
+                bottomBoxView?.amountTextField.text = ""
                 inputTextField = ""
                 bottomViewScrollNumber = page
             }
@@ -226,6 +229,9 @@ class ViewController: UIViewController, UIScrollViewDelegate, UITextFieldDelegat
         return true
     }
     
+    func textFieldDidEndEditing(_ textField: UITextField) {
+        print(textField.text)
+    }
     // MARK: - character deletion recognizer
     //FIXME: - нужна функция(?), которая отслеживает удаление символа из поля ввода и изменяет массив
     
@@ -238,12 +244,12 @@ class ViewController: UIViewController, UIScrollViewDelegate, UITextFieldDelegat
         // unwrap numberArray and currentRate
         if let numberArray = Double(self.inputTextField ?? ""), let currentRate = currentRate {
             result = Double(numberArray) * currentRate
-            self.bottomBoxView?.textFieldValue.text = String(format: "%.2f", result)
+            self.bottomBoxView?.amountTextField.text = String(format: "%.2f", result)
             print(result)
         }
         
         else {
-            bottomScrollView.usdBoxView.textFieldValue.text = "ОШИБКА"
+            bottomScrollView.usdBoxView.amountTextField.text = "ОШИБКА"
             print("ОШИБКА введенные данные содержат не корректное значение")
         }
 
@@ -302,7 +308,7 @@ class ViewController: UIViewController, UIScrollViewDelegate, UITextFieldDelegat
         let queue = DispatchQueue(label: "getRate", attributes: .concurrent)
         timer = DispatchSource.makeTimerSource(queue: queue)
         timer?.schedule(deadline: .now(),
-                       repeating: .seconds(30),
+                       repeating: .seconds(300),
                        leeway: .seconds(1))
         timer?.setEventHandler {
             self.getExchangeRate(url: self.url)
@@ -310,5 +316,15 @@ class ViewController: UIViewController, UIScrollViewDelegate, UITextFieldDelegat
         }
         timer?.resume()
     }
+    
+
+    
+}
+
+extension ViewController: CustomCurrencyViewDelegate {
+    func editText(value: String) {
+        print("тест2", value)
+    }
+    
     
 }

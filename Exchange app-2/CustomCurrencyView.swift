@@ -7,13 +7,18 @@
 
 import UIKit
 
+protocol CustomCurrencyViewDelegate: AnyObject {
+    func editText(value: String)
+}
+
 class CustomCurrencyView: UIView {
     var currencyName = UILabel()
     var currentBalance = UILabel()
     var exchangeRate = UILabel()
-    var textFieldValue = UITextField()
+    var amountTextField = UITextField()
     
     var currencyLabel: String
+    var delegate: CustomCurrencyViewDelegate?
     
 //TODO: задать обязательные параметры
     
@@ -55,20 +60,22 @@ class CustomCurrencyView: UIView {
         exchangeRate.translatesAutoresizingMaskIntoConstraints = false
         
         //textFieldValue setup
-        textFieldValue.placeholder = "0.00"
-        textFieldValue.font = UIFont(name: "Futura-CondensedMedium", size: 80)
-        textFieldValue.textColor = .black
-        textFieldValue.translatesAutoresizingMaskIntoConstraints = false
-        textFieldValue.textAlignment = .right
-        textFieldValue.keyboardType = .numberPad
+        amountTextField.placeholder = "0.00"
+        amountTextField.font = UIFont(name: "Futura-CondensedMedium", size: 80)
+        amountTextField.textColor = .black
+        amountTextField.translatesAutoresizingMaskIntoConstraints = false
+        amountTextField.textAlignment = .right
+        amountTextField.keyboardType = .numberPad
         // addTarget
-//        textFieldValue.addTarget(self, action: #selector(ViewController.textFieldDidChangeValue(textField:)), for: .editingChanged)
+//        amountTextField.addTarget(self, action: #selector(ViewController.textField(_:shouldChangeCharactersIn:replacementString:)), for: .valueChanged)
+        //test:
+        amountTextField.addTarget(self, action: #selector(printTextValue(_:)), for: .editingChanged)
 
         
         addSubview(currencyName)
         addSubview(currentBalance)
         addSubview(exchangeRate)
-        addSubview(textFieldValue)
+        addSubview(amountTextField)
         
         let constraints = [
             currencyName.leadingAnchor.constraint(equalTo: layoutMarginsGuide.leadingAnchor),
@@ -81,12 +88,17 @@ class CustomCurrencyView: UIView {
             exchangeRate.trailingAnchor.constraint(equalTo: layoutMarginsGuide.trailingAnchor),
             exchangeRate.bottomAnchor.constraint(equalTo: layoutMarginsGuide.bottomAnchor),
             
-            textFieldValue.topAnchor.constraint(equalTo: layoutMarginsGuide.topAnchor),
-            textFieldValue.trailingAnchor.constraint(equalTo: layoutMarginsGuide.trailingAnchor)
+            amountTextField.topAnchor.constraint(equalTo: layoutMarginsGuide.topAnchor),
+            amountTextField.trailingAnchor.constraint(equalTo: layoutMarginsGuide.trailingAnchor)
         ]
         NSLayoutConstraint.activate(constraints)
         
         
+    }
+    
+    @objc func printTextValue(_ textField: UITextField) {
+        print("тест", textField.text)
+        delegate?.editText(value: textField.text ?? "")
     }
     
 }
